@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.security.SecureRandom;
 import java.sql.*;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -42,7 +42,8 @@ public class DBPortal {
 //		} catch(InterruptedException ex) {
 //			Thread.currentThread().interrupt();
 //		}
-		System.out.println(portal.getHTML("KyleRogers", true));
+		System.out.println(portal.userExists("KyleRogers"));
+		System.out.println(portal.userExists("aname"));
 	}
 
 	public static final char SEP = File.separatorChar;
@@ -70,6 +71,7 @@ public class DBPortal {
 			"INSERT INTO POST VALUES(null,?,?)";
 	private static final String CREATE_POSTED_STATEMENT = 
 			"INSERT INTO POSTED VALUES( ?,(select last_insert_rowid()),null,?)";
+	
 
 
 	/**
@@ -86,8 +88,28 @@ public class DBPortal {
 			e.printStackTrace();
 		}
 	}
+	
+	public boolean createUser(String username, String description, String email, String picture, String passHash, String name) throws SQLException
+	{
+		String cmd = "INSERT INTO USER VALUES(?,?,?,?,?,?,?)";
+		PreparedStatement prepStmt = conn.prepareStatement(cmd);
+		prepStmt.setString(1, username);
+		prepStmt.setString(2, randomString(20));
+		prepStmt.setString(3, passHash);
+		prepStmt.setString(4, email);
+		prepStmt.setString(5, description);
+		prepStmt.setString(6, picture);
+		prepStmt.setString(7, name);
+		return prepStmt.execute();
+	}
 
-	public boolean createPost(String message, long sessionID)
+	/**
+	 * 
+	 * @param message
+	 * @param sessionID
+	 * @return
+	 */
+	public boolean createPost(String message, String sessionID)
 	{
 		String username = "";
 		try {
@@ -99,7 +121,13 @@ public class DBPortal {
 		return createPost(message,username);
 	}
 
-	public boolean createPost(String message, String username)
+	/**
+	 * 
+	 * @param message
+	 * @param username
+	 * @return
+	 */
+	public boolean createPostWithUsername(String message, String username)
 	{
 		PreparedStatement prepStmt;
 		try {
@@ -119,11 +147,32 @@ public class DBPortal {
 		}
 		return false;
 	}
+	
+	/**
+	 * Checks to see if the given user exists
+	 * @param username User that is being checked for existence
+	 * @return Whether the user exists or not
+	 * @throws SQLException
+	 */
+	public boolean userExists(String username) throws SQLException
+	{
+		String query = "SELECT username FROM USER WHERE USERNAME = ?";
+		PreparedStatement prepStmt = conn.prepareStatement(query);
+		prepStmt.setString(1, username);
+		ResultSet rs = prepStmt.executeQuery();
+		return rs.next();
+	}
 
-	private String getUsernameByID(long sessionID) throws SQLException
+	/**
+	 * 
+	 * @param sessionID
+	 * @return
+	 * @throws SQLException0
+	 */
+	public String getUsernameByID(String sessionID) throws SQLException
 	{
 		PreparedStatement prepStmt = conn.prepareStatement("SELECT username FROM USER WHERE sessionID = ?");
-		prepStmt.setLong(1, sessionID);
+		prepStmt.setString(1, sessionID);
 		ResultSet rs = prepStmt.executeQuery();
 		return rs.getString("username");
 	}
@@ -159,7 +208,7 @@ public class DBPortal {
 	 * @throws FileNotFoundException One of the HTML template files is missing
 	 * @throws SQLException The session ID is invalid, twotter.db has an error, or the SQL inputs have an error
 	 */
-	public String getProfileHTML_SessionID(long sessionID) throws FileNotFoundException, SQLException
+	public String getProfileHTML_SessionID(String sessionID) throws FileNotFoundException, SQLException
 	{
 		return getHTML(getUsernameByID(sessionID),false);
 	}
@@ -243,6 +292,18 @@ public class DBPortal {
 			}
 		}
 		return null;
+	}
+	
+	public static String randomString(int size)
+	{
+		char[] chars = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+		StringBuilder sb = new StringBuilder();
+		SecureRandom random = new SecureRandom();
+		for (int i = 0; i < size; i++) {
+		    char c = chars[random.nextInt(chars.length)];
+		    sb.append(c);
+		}
+		return sb.toString();
 	}
 
 }
