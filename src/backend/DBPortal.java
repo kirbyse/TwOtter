@@ -115,7 +115,6 @@ public class DBPortal {
 		try {
 			username = getUsernameByID(sessionID);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return createPost(message,username);
@@ -161,6 +160,26 @@ public class DBPortal {
 		prepStmt.setString(1, username);
 		ResultSet rs = prepStmt.executeQuery();
 		return rs.next();
+	}
+	
+	public boolean checkLogin(String username, String passHash) throws SQLException
+	{
+		String query = "SELECT username FROM USER WHERE USERNAME = ? AND PASSWORD = ?";
+		PreparedStatement prepStmt = conn.prepareStatement(query);
+		prepStmt.setString(1, username);
+		prepStmt.setString(2, passHash);
+		ResultSet rs = prepStmt.executeQuery();
+		return rs.next();
+	}
+	
+	public String retrieveSessionID(String username) throws SQLException
+	{
+		String query = "SELECT sessionID FROM USER WHERE USERNAME = ?";
+		PreparedStatement prepStmt = conn.prepareStatement(query);
+		prepStmt.setString(1, username);
+		ResultSet rs = prepStmt.executeQuery();
+		rs.next();
+		return rs.getString(1);
 	}
 
 	/**

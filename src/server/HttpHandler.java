@@ -202,7 +202,7 @@ public class HttpHandler extends java.lang.Thread {
 		System.out.println(username);
 		System.out.println(password);
 		if(portal.checkLogin(username, password)) { //Log in was successful
-			sessionId = portal.retreiveSessionID(username);
+			sessionId = portal.retrieveSessionID(username);
 			sendLoginNewsFeed();
 		} else { //Login was unsuccessful
 			sendLoginError();
