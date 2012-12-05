@@ -82,6 +82,10 @@ public class HttpHandler extends java.lang.Thread {
 			return "image/jpg";
 		else if ("gif".equals(e))
 			return "image/gif";
+		else if("css".equals(e))
+			return "text/css";
+		else if("js".equals(e))
+			return "text/javascript";
 		else
 			return "text/txt";
 	}
@@ -105,7 +109,7 @@ public class HttpHandler extends java.lang.Thread {
 		String line = "empty";
 		while (!line.equals("")) {
 			line = br.readLine();
-			System.out.println(line);
+			//System.out.println(line);
 			line = line.toLowerCase();
 			if(line.contains("session=")) { //If the HTTP request contains a cookie for sessionId
 				sessionId = line.substring(line.indexOf("session=")+8);
@@ -175,6 +179,10 @@ public class HttpHandler extends java.lang.Thread {
 					else if(portal.userExists(URL.substring(1))) {
 						userProfile(URL.substring(1));
 					}
+					else if(URL.endsWith(".css") || URL.endsWith(".js") || URL.endsWith(".jpg")) {
+						System.out.println("Handling File");
+						handleFile(URL);
+					}
 					else {
 						send404();
 					}
@@ -184,6 +192,27 @@ public class HttpHandler extends java.lang.Thread {
 		} catch (Exception err) {
 			err.printStackTrace();
 		}
+	}
+	
+	public void handleFile(String URL) throws IOException {
+		FileInputStream fin = null;
+		try {
+			fin = new FileInputStream("src/backend/HTMLTemplates" + URL);
+		} catch (IOException err) {
+			System.out.println("Couldn't find file: " + URL);
+			send404();
+			return;
+		}
+
+		sendResponseHeader(200,"OK",getContentType(URL));
+		byte buff[] = new byte[1000];
+		int readLen;
+		while((readLen=fin.read(buff)) != -1)
+			os.write(buff,0,readLen);
+		os.flush();
+		fin.close();
+
+
 	}
 
 	public void userProfile(String username) throws IOException, SQLException { //Get someone else's Profile
@@ -206,15 +235,16 @@ public class HttpHandler extends java.lang.Thread {
 		String password = responses[2];
 		System.out.println(username);
 		System.out.println(password);
-		if(!username.equals("") && !password.equals("")) {
-			if(portal.checkLogin(username, password)) { //Log in was successful
+		//if(!username.equals("") && !password.equals("")) {
+			//if(portal.checkLogin(username, password)) { //Log in was successful
 				sendLoginNewsFeed(username);
-			} else { //Login was unsuccessful
-				sendLoginError();
-			}
-		} else {
-			sendLoginError();
-		}
+			//} else { //Login was unsuccessful
+			//	sendLoginError();
+			//}
+		//}
+		//else {
+		//	sendLoginError();
+		//}
 
 	}
 

@@ -29,21 +29,10 @@ public class DBPortal {
 	 */
 	public static void main(String[] args) throws SQLException, FileNotFoundException
 	{
-			DBPortal portal = new DBPortal();
-//		try {
-//			portal.createPost("This is a post!", "KyleRogers");
-//			Thread.sleep(1000);
-//			portal.createPost("I'm a jerkface!", "ShannonEric");
-//			Thread.sleep(10000);
-//			portal.createPost("This is a twot!", "JustinO");
-//			Thread.sleep(5000);
-//			portal.createPost("WHOOOOAAAAA SQEEEEAAKKKKIINNGGGGG!", "Wangy");
-//			Thread.sleep(7000);
-//		} catch(InterruptedException ex) {
-//			Thread.currentThread().interrupt();
-//		}
-		System.out.println(portal.checkLogin("Kylo';DROP TABLE USER;--gers","12345678901234567"));
-		System.out.println(portal.userExists("aname"));
+		DBPortal portal = new DBPortal();
+		ArrayList<Post> posts = portal.getPosts("JohnSmith", true);
+		for (Post p : posts) System.out.println(p.toString());
+		
 	}
 
 	public static final char SEP = File.separatorChar;
@@ -52,14 +41,14 @@ public class DBPortal {
 
 	// SQL statement for retrieving all of the posts that a user has posted, including reposts
 	private static final String GET_USER_POSTS_STATEMENT = 
-			"SELECT DISTINCT(POSTED.postID),POSTED.username,POST.username,POSTED.timestamp,POST.message,USER.picture " + 
+			"SELECT DISTINCT(POST.postID),POSTED.username,POST.username,POSTED.timestamp,POST.message,USER.picture " + 
 					"FROM USER JOIN POSTED ON USER.username=POST.username JOIN POST ON POST.postid=POSTED.postid WHERE " + 
 					"POSTED.username= ? ORDER BY timestamp DESC";
 
 	// SQL statement for retrieving all of the posts for the users that a given user follows
 	// This statement returns both an original post and each repost. It should only return the oldest post
 	private static final String GET_FEED_STATEMENT = 
-			"SELECT DISTINCT(POSTED.postID),POSTED.username,POST.username,POSTED.timestamp,POST.message,USER.picture " + 
+			"SELECT DISTINCT(POST.postID),POSTED.username,POST.username,POSTED.timestamp,POST.message,USER.picture " + 
 					"FROM POST JOIN POSTED ON POST.postid=POSTED.postid JOIN FOLLOWING ON FOLLOWING.followee=POSTED.username " + 
 					"JOIN USER ON POST.username=USER.username WHERE FOLLOWING.follower=? ORDER BY timestamp DESC";
 
@@ -162,6 +151,29 @@ public class DBPortal {
 		return rs.next();
 	}
 	
+	
+	/**
+	 * Check to see if an email is already taken
+	 * @param email
+	 * @return True if the email already exists, false if it is not present in the database
+	 * @throws SQLException
+	 */
+	public boolean emailExists(String email) throws SQLException
+	{
+		String query = "SELECT username FROM USER WHERE email = ?";
+		PreparedStatement prepStmt = conn.prepareStatement(query);
+		prepStmt.setString(1,email);
+		ResultSet rs = prepStmt.executeQuery();
+		return rs.next();
+	}
+	
+	/**
+	 * Check if login information is valid
+	 * @param username
+	 * @param password
+	 * @return True if the login information is valid, otherwise false
+	 * @throws SQLException
+	 */
 	public boolean checkLogin(String username, String password) throws SQLException
 	{
 		String query = "SELECT username FROM USER WHERE USERNAME = ? AND PASSWORD = ?";
@@ -172,6 +184,12 @@ public class DBPortal {
 		return rs.next();
 	}
 	
+	/**
+	 * Find the session ID for a user
+	 * @param username
+	 * @return
+	 * @throws SQLException
+	 */
 	public String retrieveSessionID(String username) throws SQLException
 	{
 		String query = "SELECT sessionID FROM USER WHERE USERNAME = ?";
@@ -183,7 +201,7 @@ public class DBPortal {
 	}
 
 	/**
-	 * 
+	 * Find username by session ID
 	 * @param sessionID
 	 * @return
 	 * @throws SQLException0
@@ -250,12 +268,20 @@ public class DBPortal {
 		if (posts.size() == 0) postHTML = readFile("src/backend/HTMLTemplates/nothing_here.html");
 		for (Post p : posts) postHTML += p.toHTML();
 		String tempF = DBPortal.readFile("src" + DBPortal.SEP + "backend" + DBPortal.SEP + "HTMLTemplates" + DBPortal.SEP + "template.html");
-		String page = tempF.replaceFirst("%userInformation%", userHTML);
+		String page = tempF.replaceAll("%username%",username);
+		page = page.replaceFirst("%userInformation%", userHTML);
 		page = page.replaceFirst("%posts%", postHTML);
 		return page;
 	}
 
 
+	/**
+	 * Retrieve the posts for a either the user's news feed or the posts that the user has posted
+	 * @param username
+	 * @param newsfeed True returns 
+	 * @return
+	 * @throws SQLException
+	 */
 	private ArrayList<Post> getPosts(String username, boolean newsfeed) throws SQLException
 	{
 		ArrayList<Post> posts = new ArrayList<Post>();

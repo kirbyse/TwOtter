@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>TwOtter - Login</title>
+    <title>TwOtter - Create User</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
@@ -52,7 +52,7 @@
 
     <div class="container">
 		<div class="page-header">
-			<h1>Login</h1>
+			<h1>Create a User</h1>
 		</div>
 		<div class="row">
 		<div class="well span4">
@@ -60,11 +60,13 @@
 			<p>Invalid Username/Password</p>
 		</div>
 			<form class="form-signin">
-				<h3 class="form-signin-heading">Please sign in</h3>
+				<h3 class="form-signin-heading">Enter User Information</h3>
 				<input type="text" name="username" class="input-block-level" placeholder="Username">
 				<input type="password" name="password" class="input-block-level" placeholder="Password">
-				<button class="btn btn-large btn-primary" type="submit">Sign in</button><br/>
-				<a href="/makeaprofile">Create an Account</a>
+				<input type="email" name="email" class="input-block-level" placeholder="Email">
+				<input type="text" name="name" class="input-block-level" placeholder="Name">
+				<input type="text" name="description" class="input-block-level" placeholder="Profile Description">
+				<button class="btn btn-large btn-primary" type="submit">Create Profile</button><br/>
 			</form>
 		</div>
 		</div>
