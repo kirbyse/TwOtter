@@ -8,29 +8,32 @@ public class HttpServer {
 	int cnt;
 	ServerSocket svr = null;
 
-	public HttpServer(int p) {
-		this.port=p;
+	public HttpServer() {
 	}
 
 	public static void main(String a[]) {
-		int port = -1;
-		try {
-			port = Integer.parseInt(a[0]);
-		} catch (Exception err) {
-			System.err.println("Usage: <port>");
-			System.exit(-1);
-		}
+		//try {
+		//	port = Integer.parseInt(a[0]);
+		//} catch (Exception err) {
+		//	System.err.println("Usage: <port>");
+		//	System.exit(-1);
+		//}
 
-		new HttpServer(port).run();
+		new HttpServer().run();
 	}
 
 	public void run() {
 
-		try {
-			svr = new ServerSocket(port);
-		} catch (IOException err) {
-			System.err.println("Socket invalid or in use");
-			System.exit(-1);
+		for(int i = 3000; i < 65000; i++) {
+			try {
+				svr = new ServerSocket(i);
+				port = i;
+				System.out.println("Running on port: " + port);
+				break;
+			} catch (IOException err) {
+				System.err.println("Socket invalid or in use");
+				System.exit(-1);
+			}
 		}
 
 		while (true) {

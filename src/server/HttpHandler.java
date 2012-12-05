@@ -38,7 +38,7 @@ public class HttpHandler extends java.lang.Thread {
 		sb.append("HTTP/1.1 " + code + " " + status + "\r\n");
 		sb.append("Content-Length: " + body.length + "\r\n");
 		sb.append("Content-Type: " + type + "\r\n");
-		sb.append("\r\n");	//dont' forget blank line
+		sb.append("\r\n");	//dont forget blank line
 		os.write(sb.toString().getBytes());
 		os.write(body);
 		os.flush();
@@ -50,7 +50,7 @@ public class HttpHandler extends java.lang.Thread {
 		sb.append("Content-Length: " + body.length + "\r\n");
 		sb.append("Content-Type: " + type + "\r\n");
 		sb.append("Set-Cookie: session=" + sessionId + "\r\n"); //Setting the sessionId for the client
-		sb.append("\r\n");	//dont' forget blank line
+		sb.append("\r\n");	//dont forget blank line
 		os.write(sb.toString().getBytes());
 		os.write(body);
 		os.flush();
@@ -90,7 +90,7 @@ public class HttpHandler extends java.lang.Thread {
 	Security check url
 	 */
 	public String testURL(String url) {
-		if (url.contains("..")) // do not allow path to move above htdocs
+		if (url.contains("..")) // do not allow path to move above
 			return null;
 		else
 			return url;
@@ -107,8 +107,8 @@ public class HttpHandler extends java.lang.Thread {
 			line = br.readLine();
 			System.out.println(line);
 			line = line.toLowerCase();
-			if(line.contains("session=")) {
-				sessionId = line.substring(line.indexOf("session=")+10);
+			if(line.contains("session=")) { //If the HTTP request contains a cookie for sessionId
+				sessionId = line.substring(line.indexOf("session=")+8);
 				System.out.println("sessionId = " + sessionId);
 			}
 		}
@@ -127,8 +127,9 @@ public class HttpHandler extends java.lang.Thread {
 		try {
 			os = client.getOutputStream();
 			String URL = getRequest();
+			//URL = URL.toLowerCase();
 			if (URL!= null) {
-				if(sessionId == DEFAULT_ID) {
+				if(sessionId.equals(DEFAULT_ID)) {
 					if (URL.contains("username=") && URL.contains("password=")) {
 						//User just submitted log in information
 						getLogin(URL);
@@ -139,13 +140,17 @@ public class HttpHandler extends java.lang.Thread {
 					}
 				}
 				else {
-					if (URL.equals("/TwOtter")) {
+					if (URL.equals("/twotter") || URL.equals("/") || URL.equals("/home")) {
 						sendNewsFeed();
 					}
-					else if (URL.equals("/MakeAProfile")) {
+					else if (URL.contains("username=") && URL.contains("password=")) {
+						//User just submitted log in information
+						getLogin(URL);
+					}
+					else if (URL.equals("/makeaprofile")) {
 						//sendMakeAProfile();
 					}
-					else if (URL.startsWith("/MakeAProfile")) {
+					else if (URL.startsWith("/makeaprofile")) {
 						//User made profile
 						//getMakeAProfile();
 					}
@@ -156,20 +161,20 @@ public class HttpHandler extends java.lang.Thread {
 						portal.createPost(post,sessionId);
 						sendNewsFeed();
 					}
-					else if(URL.equals("/EditProfile")) {
+					else if(URL.equals("/editprofile")) {
 						sendEditProfile();
 					}
-					else if(URL.startsWith("/EditProfile")) {
+					else if(URL.startsWith("/editprofile") && URL.contains("name=") && URL.contains("description=") && URL.contains("image=")) {
 						//User Edited Profile
 						getEditProfile(URL);
 					}
-					else if(URL.equals("/LogOut")) {
+					else if(URL.equals("/logout")) {
 						sessionId = DEFAULT_ID;
 						sendLogin();
 					}
-					//else if(DBPortal.userExists(URL.substring(1))) {
-					//	userProfile(URL);
-					//}
+					else if(portal.userExists(URL.substring(1))) {
+						userProfile(URL.substring(1));
+					}
 					else {
 						send404();
 					}
@@ -183,43 +188,46 @@ public class HttpHandler extends java.lang.Thread {
 
 	public void userProfile(String username) throws IOException, SQLException { //Get someone else's Profile
 		try {
-		String body = portal.getProfileHTML(username);
-		sendResponse(200,"OK","text/html",body.getBytes());
+			String body = portal.getProfileHTML(username);
+			sendResponse(200,"OK","text/html",body.getBytes());
 		} catch (FileNotFoundException err) {
 			send404();
 		}
 	}
 
-	public void sendProfile() {
+	public void sendProfile() throws SQLException, IOException {
 		String body = portal.getProfileHTML_SessionID(sessionId);
 		sendResponse(200,"OK","text/html",body.getBytes());
 	}
 
-	public void getLogin(String URL) throws IOException {
+	public void getLogin(String URL) throws IOException, SQLException {
 		String responses[] = URL.split("=");
 		String username = responses[1].substring(0, responses[1].length()-9);
 		String password = responses[2];
 		System.out.println(username);
 		System.out.println(password);
-		if(portal.checkLogin(username, password)) { //Log in was successful
-			sessionId = portal.retrieveSessionID(username);
-			sendLoginNewsFeed();
-		} else { //Login was unsuccessful
+		if(!username.equals("") && !password.equals("")) {
+			if(portal.checkLogin(username, password)) { //Log in was successful
+				sendLoginNewsFeed(username);
+			} else { //Login was unsuccessful
+				sendLoginError();
+			}
+		} else {
 			sendLoginError();
 		}
-		
+
 	}
 
 	//Newsfeed that is sent when the user first logs on, sets the sessionId cookie for the client browser
 	//establishing session control until the user logs out.
-	public void sendLoginNewsFeed() throws IOException {
-		String username = portal.getUsernameByID(sessionId);
+	public void sendLoginNewsFeed(String username) throws IOException, SQLException {
+		sessionId = "12345678901234567890";
 		String body = portal.getNewsFeedHTML(username);
 		sendCookieResponse(200,"OK","text/html",body.getBytes());
 	}
-	
-	public void sendNewsFeed() throws IOException {
-		String username = portal.getUsernameByID(sessionId);
+
+	public void sendNewsFeed() throws IOException, SQLException {
+		String username = portal.getUsernameByID(sessionId); //This method doesn't work
 		String body = portal.getNewsFeedHTML(username);
 		sendResponse(200,"OK","text/html",body.getBytes());
 	}
@@ -242,13 +250,13 @@ public class HttpHandler extends java.lang.Thread {
 		sb.append("Username: <input type='text' name='username'><br>");
 		sb.append("Password: <input type='text' name='password'><input type='submit'>");
 		sb.append("</form></body></html>");
-		sendResponse(200,"OK","text/html",sb.toString().getBytes());
+		sendCookieResponse(200,"OK","text/html",sb.toString().getBytes());
 	}
-	
+
 	public void sendLoginError() throws IOException { //Justin will change this text
 		StringBuffer sb = new StringBuffer();
-		sb.append("<html><head><title>Login</title></head><body>");
-		sb.append("<h1>Login</h1><br>");
+		sb.append("<html><head><title>Login Error</title></head><body>");
+		sb.append("<h1>Login Error</h1><br>");
 		sb.append("<form method='get'>");
 		sb.append("Username: <input type='text' name='username'><br>");
 		sb.append("Password: <input type='text' name='password'><input type='submit'>");

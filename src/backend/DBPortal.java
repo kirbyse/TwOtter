@@ -42,7 +42,7 @@ public class DBPortal {
 //		} catch(InterruptedException ex) {
 //			Thread.currentThread().interrupt();
 //		}
-		System.out.println(portal.userExists("KyleRogers"));
+		System.out.println(portal.checkLogin("Kylo';DROP TABLE USER;--gers","12345678901234567"));
 		System.out.println(portal.userExists("aname"));
 	}
 
@@ -162,12 +162,12 @@ public class DBPortal {
 		return rs.next();
 	}
 	
-	public boolean checkLogin(String username, String passHash) throws SQLException
+	public boolean checkLogin(String username, String password) throws SQLException
 	{
 		String query = "SELECT username FROM USER WHERE USERNAME = ? AND PASSWORD = ?";
 		PreparedStatement prepStmt = conn.prepareStatement(query);
 		prepStmt.setString(1, username);
-		prepStmt.setString(2, passHash);
+		prepStmt.setString(2, password);
 		ResultSet rs = prepStmt.executeQuery();
 		return rs.next();
 	}
