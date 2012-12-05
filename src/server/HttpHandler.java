@@ -217,7 +217,7 @@ public class HttpHandler extends java.lang.Thread {
 
 	public void userProfile(String username) throws IOException, SQLException { //Get someone else's Profile
 		try {
-			String body = portal.getProfileHTML(username);
+			String body = portal.getProfileHTML(username,username);
 			sendResponse(200,"OK","text/html",body.getBytes());
 		} catch (FileNotFoundException err) {
 			send404();
@@ -225,7 +225,7 @@ public class HttpHandler extends java.lang.Thread {
 	}
 
 	public void sendProfile() throws SQLException, IOException {
-		String body = portal.getProfileHTML_SessionID(sessionId);
+		String body = portal.getProfileHTML(sessionId,"");
 		sendResponse(200,"OK","text/html",body.getBytes());
 	}
 

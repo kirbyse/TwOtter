@@ -1,9 +1,12 @@
 package backend;
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
@@ -12,6 +15,7 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Random;
 
 /**
  * Database Portal that acts as a portal to the program database. Methods are provided for generating HTML documents
@@ -22,6 +26,88 @@ import java.util.Date;
 public class DBPortal {
 
 	/**
+	 * Open a file and store each line in a String
+	 * @param filename location of the file
+	 * @return Each line of the file stored in an ArrayList
+	 */
+	public static ArrayList<String> readFileByLine(String filename)
+	{
+		ArrayList<String> lines = new ArrayList<String>();
+		try{
+			// Open the file that is the first 
+			// command line parameter
+			FileInputStream fstream = new FileInputStream(filename);
+			// Get the object of DataInputStream
+			DataInputStream in = new DataInputStream(fstream);
+			BufferedReader br = new BufferedReader(new InputStreamReader(in));
+			String strLine;
+			//Read File Line By Line
+			while ((strLine = br.readLine()) != null) lines.add (strLine);
+			//Close the input stream
+			in.close();
+		}catch (Exception e){//Catch exception if any
+			System.err.println("Error: " + e.getMessage());
+		}
+
+		return lines;
+	}
+	
+	private static void populate() throws SQLException, FileNotFoundException
+	{
+		ArrayList<String> firstNames = readFileByLine("tmp_txt/Given-Names");
+		ArrayList<String> lastNames = readFileByLine("tmp_txt/Family-Names");
+		ArrayList<String> passwords = readFileByLine("tmp_txt/common-passwords.txt");
+		String book = readFile("tmp_txt/PlatosRepublic.txt");
+		book += readFile("tmp_txt/BuddhistPsalms.txt");
+		book += readFile("tmp_txt/KingJamesBible.txt");
+		book += readFile("tmp_txt/Koran.txt");
+		book += readFile("tmp_txt/ThusSpakeZazrthustra.txt");
+		
+		ArrayList<String> messages = new ArrayList<String>();
+		String[] mArray = book.split("\\.");
+		
+		for (String m : mArray)
+		{
+			m = m.trim();
+			if (m.length() >= 10) messages.add(m); 
+		}
+		
+		DBPortal db = new DBPortal();
+		Random rnd = new Random();
+		ArrayList<User> users = new ArrayList<User>();
+		for (int i = 0 ; i < 100 ; i++)
+		{
+			String lName = lastNames.get(rnd.nextInt(lastNames.size()));
+			for (int j = 0 ; j <= rnd.nextInt(5) ; j++)
+			{
+				String fName = firstNames.get(rnd.nextInt(firstNames.size()));
+				String password = passwords.get(rnd.nextInt(passwords.size()));
+				users.add(new User(lName + fName.substring(0,2), lName + fName.substring(0,2) + "@gmail.com", "", "pic1.jpg", fName + " " + lName));
+				db.createUser(lName + fName.substring(0,2), "", lName + fName.substring(0,2) + "@gmail.com", "pic" + rnd.nextInt(4) + ".jpg", password, fName + " " + lName);
+				
+			}
+			System.out.println("Added users with " + lName + " for last name");
+		}
+		
+		for (User u : users)
+		{
+			for (int i = 0 ; i < rnd.nextInt(10) ; i++)
+			{
+				db.follow(u.username, users.get(rnd.nextInt(users.size())).username);
+			}
+			for (int i = 0 ; i < rnd.nextInt(10) ; i++)
+			{
+				String mess = messages.get(rnd.nextInt(messages.size()));
+				if (mess.length() >= 140) mess = mess.substring(0,140);
+				db.createPostWithUsername(messages.get(rnd.nextInt(messages.size())), u.username);
+			}
+			System.out.println("Posts for " + u.username + " finished");
+		}
+		
+		
+	}
+	
+	/**
 	 * Used for testing DBPortal.java
 	 * @param args
 	 * @throws SQLException
@@ -30,9 +116,7 @@ public class DBPortal {
 	public static void main(String[] args) throws SQLException, FileNotFoundException
 	{
 		DBPortal portal = new DBPortal();
-		ArrayList<Post> posts = portal.getPosts("JohnSmith", true);
-		for (Post p : posts) System.out.println(p.toString());
-		
+		populate();
 	}
 
 	public static final char SEP = File.separatorChar;
@@ -60,7 +144,7 @@ public class DBPortal {
 			"INSERT INTO POST VALUES(null,?,?)";
 	private static final String CREATE_POSTED_STATEMENT = 
 			"INSERT INTO POSTED VALUES( ?,(select last_insert_rowid()),null,?)";
-	
+	private static final String FOLLOW_STATEMENT = "INSERT INTO FOLLOWING VALUES(?,?)";
 
 
 	/**
@@ -89,7 +173,22 @@ public class DBPortal {
 		prepStmt.setString(5, description);
 		prepStmt.setString(6, picture);
 		prepStmt.setString(7, name);
-		return prepStmt.execute();
+		try{
+			return prepStmt.execute();
+		} catch(SQLException e)
+		{
+			return false;
+		}
+	}
+	
+	public boolean follow(String follower, String following) throws SQLException
+	{
+		PreparedStatement prepStmt = conn.prepareStatement(FOLLOW_STATEMENT);
+		prepStmt.setString(1, follower);
+		prepStmt.setString(2, following);
+		try{
+			return prepStmt.execute();
+		}catch(SQLException e) {return false;}
 	}
 
 	/**
@@ -119,6 +218,7 @@ public class DBPortal {
 	{
 		PreparedStatement prepStmt;
 		try {
+			Random rnd = new Random();
 			prepStmt = conn.prepareStatement(CREATE_POST_STATEMENT);
 			prepStmt.setString(1, message);
 			prepStmt.setString(2, username);
@@ -127,7 +227,7 @@ public class DBPortal {
 			prepStmt.setString(1, username);
 			String format = "yyyy-MM-dd hh:mm:ss.SS a";
 			SimpleDateFormat sdf = new SimpleDateFormat(format);
-			Date now = new Date();
+			Date now = new Date(1351728000 + rnd.nextInt(1354320000-1351728000));
 			prepStmt.setString(2, sdf.format(now));
 			return prepStmt.execute();
 		} catch (SQLException e) {
@@ -223,31 +323,20 @@ public class DBPortal {
 	 */
 	public String getNewsFeedHTML(String username) throws FileNotFoundException, SQLException
 	{
-		return getHTML(username,true);
+		return getHTML(username, username,true);
 	}
 
 	/**
 	 * Dynamically generates an HTML page for username's profile
+	 * @param sessionID The user requesting the profile
 	 * @param username The user who's profile is being requested
 	 * @return HTML page for the profile
 	 * @throws FileNotFoundException one of the template HTML files is missing
 	 * @throws SQLException There was an error in twotter.db or with the username
 	 */	
-	public String getProfileHTML(String username) throws FileNotFoundException, SQLException
+	public String getProfileHTML(String sessionID, String username) throws FileNotFoundException, SQLException
 	{
-		return getHTML(username,false);
-	}
-
-	/**
-	 * Retrieves the profile of the user based on their session ID
-	 * @param sessionID
-	 * @return String of HTML. If the user does not exist, returns null
-	 * @throws FileNotFoundException One of the HTML template files is missing
-	 * @throws SQLException The session ID is invalid, twotter.db has an error, or the SQL inputs have an error
-	 */
-	public String getProfileHTML_SessionID(String sessionID) throws FileNotFoundException, SQLException
-	{
-		return getHTML(getUsernameByID(sessionID),false);
+		return getHTML(sessionID, username,false);
 	}
 
 	/**
@@ -258,8 +347,11 @@ public class DBPortal {
 	 * @throws FileNotFoundException One of the HTML template files is missing
 	 * @throws SQLException twotter.db has an error or an error in SQL inputs
 	 */
-	private String getHTML(String username, boolean newsfeed) throws FileNotFoundException, SQLException
+	private String getHTML(String sessionID, String username, boolean newsfeed) throws FileNotFoundException, SQLException
 	{
+		String requestingUser = username;
+		if (sessionID != null)
+			requestingUser = getUsernameByID(sessionID);
 		User u = getUser(username);
 		if (u == null) return null;
 		String userHTML = getUser(username).toHTML();
@@ -268,7 +360,8 @@ public class DBPortal {
 		if (posts.size() == 0) postHTML = readFile("src/backend/HTMLTemplates/nothing_here.html");
 		for (Post p : posts) postHTML += p.toHTML();
 		String tempF = DBPortal.readFile("src" + DBPortal.SEP + "backend" + DBPortal.SEP + "HTMLTemplates" + DBPortal.SEP + "template.html");
-		String page = tempF.replaceAll("%username%",username);
+		String page = tempF.replaceAll("%user%", requestingUser);
+		page = page.replaceAll("%username%",username);
 		page = page.replaceFirst("%userInformation%", userHTML);
 		page = page.replaceFirst("%posts%", postHTML);
 		return page;
