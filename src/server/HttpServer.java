@@ -3,7 +3,7 @@ package server;
 import java.io.*;
 import java.net.*;
 
-public class HttpServer {
+public class HttpServer extends Thread{
 	int port;
 	int cnt;
 	ServerSocket svr = null;
