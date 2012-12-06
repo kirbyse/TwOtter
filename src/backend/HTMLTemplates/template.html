@@ -40,13 +40,17 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="#">TwOtter</a>
+          <a class="brand" href="/home"><img src="logo.png" width="50"></a>
           <div class="nav-collapse collapse">
             <ul class="nav">
               <li class="active"><a href="/home"><i class="icon-home"></i> Home</a></li>
-              <li><a href="%username%">Profile</a></li>
+              <li><a href="%user%">Profile</a></li>
+			  <p id="login" class="navbar-text pull-right">Logged in as <a href="%user%" class="navbar-link">%user%</a>  <a href="Logout">Logout</a></p>
             </ul>
-            <p id="login" class="navbar-text pull-right">Logged in as <a href="%username%" class="navbar-link">%username%</a>  <a href="Logout">Logout</a></p>
+			<form class="navbar-search pull-right">
+				<input type="text" name="search" class="search-query" placeholder="Search">
+				<button type="submit" class="btn">Search</button>
+			</form>
           </div><!--/.nav-collapse -->
         </div>
       </div>
@@ -70,22 +74,6 @@
       </footer>
 
     </div> <!-- /container -->
-
-	
-    <!-- Placed at the end of the document so the pages load faster -->
-    <script src="bootstrap/js/jquery.js"></script>
-    <script src="bootstrap/js/bootstrap-transition.js"></script>
-    <script src="bootstrap/js/bootstrap-alert.js"></script>
-    <script src="bootstrap/js/bootstrap-modal.js"></script>
-    <script src="bootstrap/js/bootstrap-dropdown.js"></script>
-    <script src="bootstrap/js/bootstrap-scrollspy.js"></script>
-    <script src="bootstrap/js/bootstrap-tab.js"></script>
-    <script src="bootstrap/js/bootstrap-tooltip.js"></script>
-    <script src="bootstrap/js/bootstrap-popover.js"></script>
-    <script src="bootstrap/js/bootstrap-button.js"></script>
-    <script src="bootstrap/js/bootstrap-collapse.js"></script>
-    <script src="bootstrap/js/bootstrap-carousel.js"></script>
-    <script src="bootstrap/js/bootstrap-typeahead.js"></script>
 
   </body>
 </html>

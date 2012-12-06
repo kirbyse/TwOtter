@@ -40,14 +40,17 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="#">TwOtter</a>
+          <a class="brand" href="/home"><img src="logo.png" width="50"></a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li class="active"><a href="index.html"><i class="icon-home"></i> Home</a></li>
-              <li><a href="#profile">Profile</a></li>
-              <li><a href="#contact">Contact</a></li>
+              <li class="active"><a href="/home"><i class="icon-home"></i> Home</a></li>
+              <li><a href="%user%">Profile</a></li>
+			  <p id="login" class="navbar-text pull-right">Logged in as <a href="%user%" class="navbar-link">%user%</a>  <a href="Logout">Logout</a></p>
             </ul>
-            <p id="login" class="navbar-text pull-right">Logged in as <a href="%username%" class="navbar-link">%username%</a>  <a href="Logout">Logout</a></p>
+			<form class="navbar-search pull-right">
+				<input type="text" name="search" class="search-query" placeholder="Search">
+				<button type="submit" class="btn">Search</button>
+			</form>
           </div><!--/.nav-collapse -->
         </div>
       </div>
@@ -58,15 +61,21 @@
 		<div class="page-header">
 			<h1>Edit <small>Profile</small></h1>
 		</div>
-		<div class="well">
+		<div class="row">
+		<div class="well span6">
 			<form method='get'>
-				<input class="input" name="name" type="text" placeholder="Enter new name" width="200"/> <br/> <br/>
-				<input class="input" name="image" type="file" placeholder="Enter new image (.jpg or .gif)" /> <br/><br/>
-				<input class="input" name="description" type="text" maxlength="140" placeholder="Enter new description" /> <br/>
-				<button class="btn">Edit</button>
+				<input class="input-block-level" name="name" type="text" placeholder="New Name" width="200"/> <br/>
+				<input class="input-block-level" name="description" type="text" maxlength="140" placeholder="New Profile Description (140 Characters)" /> <br/>
+				<h4>Profile Picture</h4>
+				<input type="radio" name="image" value="pic0.jpg"> <img src="pic0.jpg" >
+				<input type="radio" name="image" value="pic1.jpg"> <img src="pic1.jpg" >
+				<input type="radio" name="image" value="pic2.jpg"> <img src="pic2.jpg" >
+				<input type="radio" name="image" value="pic3.jpg"> <img src="pic3.jpg" >
+				<br/><br/>
+				<button class="btn">Submit Changes</button>
 			</form>
 		</div>
-	
+		</div>
 	
 	<hr/>
       <footer>

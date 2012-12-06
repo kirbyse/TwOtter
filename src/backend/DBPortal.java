@@ -1,12 +1,9 @@
 package backend;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
@@ -15,7 +12,6 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Random;
 
 /**
  * Database Portal that acts as a portal to the program database. Methods are provided for generating HTML documents
@@ -24,100 +20,6 @@ import java.util.Random;
  * Requires SQLite-JDBC
  */
 public class DBPortal {
-
-	/**
-	 * Open a file and store each line in a String
-	 * @param filename location of the file
-	 * @return Each line of the file stored in an ArrayList
-	 */
-	public static ArrayList<String> readFileByLine(String filename)
-	{
-		ArrayList<String> lines = new ArrayList<String>();
-		try{
-			// Open the file that is the first 
-			// command line parameter
-			FileInputStream fstream = new FileInputStream(filename);
-			// Get the object of DataInputStream
-			DataInputStream in = new DataInputStream(fstream);
-			BufferedReader br = new BufferedReader(new InputStreamReader(in));
-			String strLine;
-			//Read File Line By Line
-			while ((strLine = br.readLine()) != null) lines.add (strLine);
-			//Close the input stream
-			in.close();
-		}catch (Exception e){//Catch exception if any
-			System.err.println("Error: " + e.getMessage());
-		}
-
-		return lines;
-	}
-	
-	private static void populate() throws SQLException, FileNotFoundException
-	{
-		ArrayList<String> firstNames = readFileByLine("tmp_txt/Given-Names");
-		ArrayList<String> lastNames = readFileByLine("tmp_txt/Family-Names");
-		ArrayList<String> passwords = readFileByLine("tmp_txt/common-passwords.txt");
-		String book = readFile("tmp_txt/PlatosRepublic.txt");
-		book += readFile("tmp_txt/BuddhistPsalms.txt");
-		book += readFile("tmp_txt/KingJamesBible.txt");
-		book += readFile("tmp_txt/Koran.txt");
-		book += readFile("tmp_txt/ThusSpakeZazrthustra.txt");
-		
-		ArrayList<String> messages = new ArrayList<String>();
-		String[] mArray = book.split("\\.");
-		
-		for (String m : mArray)
-		{
-			m = m.trim();
-			if (m.length() >= 10) messages.add(m); 
-		}
-		
-		DBPortal db = new DBPortal();
-		Random rnd = new Random();
-		ArrayList<User> users = new ArrayList<User>();
-		for (int i = 0 ; i < 100 ; i++)
-		{
-			String lName = lastNames.get(rnd.nextInt(lastNames.size()));
-			for (int j = 0 ; j <= rnd.nextInt(5) ; j++)
-			{
-				String fName = firstNames.get(rnd.nextInt(firstNames.size()));
-				String password = passwords.get(rnd.nextInt(passwords.size()));
-				users.add(new User(lName + fName.substring(0,2), lName + fName.substring(0,2) + "@gmail.com", "", "pic1.jpg", fName + " " + lName));
-				db.createUser(lName + fName.substring(0,2), "", lName + fName.substring(0,2) + "@gmail.com", "pic" + rnd.nextInt(4) + ".jpg", password, fName + " " + lName);
-				
-			}
-			System.out.println("Added users with " + lName + " for last name");
-		}
-		
-		for (User u : users)
-		{
-			for (int i = 0 ; i < rnd.nextInt(10) ; i++)
-			{
-				db.follow(u.username, users.get(rnd.nextInt(users.size())).username);
-			}
-			for (int i = 0 ; i < rnd.nextInt(10) ; i++)
-			{
-				String mess = messages.get(rnd.nextInt(messages.size()));
-				if (mess.length() >= 140) mess = mess.substring(0,140);
-				db.createPostWithUsername(messages.get(rnd.nextInt(messages.size())), u.username);
-			}
-			System.out.println("Posts for " + u.username + " finished");
-		}
-		
-		
-	}
-	
-	/**
-	 * Used for testing DBPortal.java
-	 * @param args
-	 * @throws SQLException
-	 * @throws FileNotFoundException
-	 */
-	public static void main(String[] args) throws SQLException, FileNotFoundException
-	{
-		DBPortal portal = new DBPortal();
-		populate();
-	}
 
 	public static final char SEP = File.separatorChar;
 
@@ -162,6 +64,17 @@ public class DBPortal {
 		}
 	}
 	
+	public boolean isFollowing(String follower, String following) throws SQLException
+	{
+		PreparedStatement prepStmt = conn.prepareStatement("SELECT * FROM FOLLOWING WHERE FOLLOWER = ? AND FOLLOWEE = ?");
+		prepStmt.setString(1,follower);
+		prepStmt.setString(2, following);
+		ResultSet rs = prepStmt.executeQuery();
+		boolean b = rs.next();
+		rs.close();
+		return b;
+	}
+	
 	public boolean createUser(String username, String description, String email, String picture, String passHash, String name) throws SQLException
 	{
 		String cmd = "INSERT INTO USER VALUES(?,?,?,?,?,?,?)";
@@ -174,14 +87,48 @@ public class DBPortal {
 		prepStmt.setString(6, picture);
 		prepStmt.setString(7, name);
 		try{
-			return prepStmt.execute();
+			prepStmt.execute();
+			follow(username,username);
+			return true;
 		} catch(SQLException e)
 		{
 			return false;
 		}
 	}
 	
-	public boolean follow(String follower, String following) throws SQLException
+	public boolean resqueak(String sessionID, int postID)
+	{
+		try {
+			PreparedStatement prepStmt = conn.prepareStatement("INSERT INTO POSTED VALUES(?,?,1,?)");
+			prepStmt.setString(1,this.getUsernameByID(sessionID));
+			prepStmt.setLong(2, postID);
+			String format = "yyyy-MM-dd hh:mm:ss.SS a";
+			SimpleDateFormat sdf = new SimpleDateFormat(format);
+			Date now = new Date();
+			prepStmt.setString(3, sdf.format(now));			
+			return prepStmt.execute();
+		} catch (SQLException e) {
+			return false;
+		}
+	}
+	
+	public boolean deletePost(int postID)
+	{
+		try {
+			PreparedStatement prepStmt = conn.prepareStatement("DELETE FROM POSTED WHERE postID = ?");
+			prepStmt.setLong(1, postID);
+			prepStmt.execute();
+			PreparedStatement prepStmt2 = conn.prepareStatement("DELETE FROM POST WHERE postID = ?");
+			prepStmt2.setLong(1, postID);
+			return prepStmt2.execute();
+		}
+		catch(SQLException e)
+		{
+			return false;
+		}
+	}
+	
+	public boolean followByUsername(String follower, String following) throws SQLException
 	{
 		PreparedStatement prepStmt = conn.prepareStatement(FOLLOW_STATEMENT);
 		prepStmt.setString(1, follower);
@@ -190,22 +137,53 @@ public class DBPortal {
 			return prepStmt.execute();
 		}catch(SQLException e) {return false;}
 	}
-
-	/**
-	 * 
-	 * @param message
-	 * @param sessionID
-	 * @return
-	 */
-	public boolean createPost(String message, String sessionID)
+	
+	public boolean follow(String sessionID, String following)
 	{
-		String username = "";
 		try {
-			username = getUsernameByID(sessionID);
+			followByUsername(this.getUsernameByID(sessionID),following);
+			return true;
 		} catch (SQLException e) {
-			e.printStackTrace();
+			return false;
 		}
-		return createPost(message,username);
+	}
+	
+	public boolean unfollow(String sessionID, String following)
+	{
+		try {
+			PreparedStatement prepStmt = conn.prepareStatement("DELETE FROM FOLLOWING WHERE FOLLOWER = ? AND FOLLOWEE = ?");
+			prepStmt.setString(1, this.getUsernameByID(sessionID));
+			prepStmt.setString(2, following);
+			prepStmt.execute();
+			return true;
+		}catch(Exception e) {return false;}
+	}
+
+	public String search(String sessionID, String term)
+	{
+		try{
+			PreparedStatement prepStmt = conn.prepareStatement("SELECT username,email,description,picture,name FROM USER WHERE username LIKE ? OR name LIKE ?");
+			prepStmt.setString(1, "%" + term + "%");
+			prepStmt.setString(2, "%" + term + "%");
+			ResultSet rs = prepStmt.executeQuery();
+			ArrayList<User> users = new ArrayList<User>();
+			String userHTML = "";
+			while (rs.next())
+			{
+				User u = new User(rs);
+				users.add(u);
+				userHTML += u.toSearchHTML();
+			}
+			String html = readFile("src" + SEP + "backend" + SEP + "HTMLTemplates" + SEP + "search.html");
+			
+			html = html.replaceAll("%user%", this.getUsernameByID(sessionID));
+			html = html.replaceAll("%userHTML%", userHTML);
+			html = html.replaceAll("%query%", term);
+			return html;
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+		} return "";
 	}
 
 	/**
@@ -218,7 +196,6 @@ public class DBPortal {
 	{
 		PreparedStatement prepStmt;
 		try {
-			Random rnd = new Random();
 			prepStmt = conn.prepareStatement(CREATE_POST_STATEMENT);
 			prepStmt.setString(1, message);
 			prepStmt.setString(2, username);
@@ -227,7 +204,7 @@ public class DBPortal {
 			prepStmt.setString(1, username);
 			String format = "yyyy-MM-dd hh:mm:ss.SS a";
 			SimpleDateFormat sdf = new SimpleDateFormat(format);
-			Date now = new Date(1351728000 + rnd.nextInt(1354320000-1351728000));
+			Date now = new Date();
 			prepStmt.setString(2, sdf.format(now));
 			return prepStmt.execute();
 		} catch (SQLException e) {
@@ -248,7 +225,9 @@ public class DBPortal {
 		PreparedStatement prepStmt = conn.prepareStatement(query);
 		prepStmt.setString(1, username);
 		ResultSet rs = prepStmt.executeQuery();
-		return rs.next();
+		boolean ans = rs.next();
+		rs.close();
+		return ans;
 	}
 	
 	
@@ -264,7 +243,9 @@ public class DBPortal {
 		PreparedStatement prepStmt = conn.prepareStatement(query);
 		prepStmt.setString(1,email);
 		ResultSet rs = prepStmt.executeQuery();
-		return rs.next();
+		boolean ans = rs.next();
+		rs.close();
+		return ans;
 	}
 	
 	/**
@@ -281,7 +262,9 @@ public class DBPortal {
 		prepStmt.setString(1, username);
 		prepStmt.setString(2, password);
 		ResultSet rs = prepStmt.executeQuery();
-		return rs.next();
+		boolean ans = rs.next();
+		rs.close();
+		return ans;
 	}
 	
 	/**
@@ -296,8 +279,10 @@ public class DBPortal {
 		PreparedStatement prepStmt = conn.prepareStatement(query);
 		prepStmt.setString(1, username);
 		ResultSet rs = prepStmt.executeQuery();
-		rs.next();
-		return rs.getString(1);
+		if (!rs.next()) return null;;
+		String ret = rs.getString(1);
+		rs.close();
+		return ret;
 	}
 
 	/**
@@ -311,7 +296,10 @@ public class DBPortal {
 		PreparedStatement prepStmt = conn.prepareStatement("SELECT username FROM USER WHERE sessionID = ?");
 		prepStmt.setString(1, sessionID);
 		ResultSet rs = prepStmt.executeQuery();
-		return rs.getString("username");
+		if (!rs.next()) return null;;
+		String username = rs.getString("username");
+		rs.close();
+		return username;
 	}
 
 	/**
@@ -323,7 +311,7 @@ public class DBPortal {
 	 */
 	public String getNewsFeedHTML(String username) throws FileNotFoundException, SQLException
 	{
-		return getHTML(username, username,true);
+		return getHTML(null, username,true);
 	}
 
 	/**
@@ -337,6 +325,39 @@ public class DBPortal {
 	public String getProfileHTML(String sessionID, String username) throws FileNotFoundException, SQLException
 	{
 		return getHTML(sessionID, username,false);
+	}
+	
+	public boolean setName(String sessionID, String name)
+	{
+		try{
+			PreparedStatement prepStmt = conn.prepareStatement("UPDATE USER SET name = ? WHERE sessionID = ?");
+			prepStmt.setString(1, name);
+			prepStmt.setString(2, sessionID);
+			prepStmt.executeUpdate();
+			return true;
+		}catch(Exception e) {return false;}
+	}
+	
+	public boolean setDescription(String sessionID, String description)
+	{
+		try{
+			PreparedStatement prepStmt = conn.prepareStatement("UPDATE USER SET description = ? WHERE sessionID = ?");
+			prepStmt.setString(1, description);
+			prepStmt.setString(2, sessionID);
+			prepStmt.executeUpdate();
+			return true;
+		}catch(Exception e) {return false;}
+	}
+	
+	public boolean setPicture(String sessionID, String picture)
+	{
+		try{
+			PreparedStatement prepStmt = conn.prepareStatement("UPDATE USER SET picture = ? WHERE sessionID = ?");
+			prepStmt.setString(1, picture);
+			prepStmt.setString(2, sessionID);
+			prepStmt.executeUpdate();
+			return true;
+		}catch(Exception e) {return false;}
 	}
 
 	/**
@@ -358,11 +379,28 @@ public class DBPortal {
 		String postHTML = "";
 		ArrayList<Post> posts = getPosts(username,newsfeed);
 		if (posts.size() == 0) postHTML = readFile("src/backend/HTMLTemplates/nothing_here.html");
-		for (Post p : posts) postHTML += p.toHTML();
+		for (Post p : posts)
+		{
+			if (p.getPostBy().equals(requestingUser))
+			{
+				postHTML += p.toHTML().replace("<!-- Delete -->", "Delete");
+			}
+			else
+			{
+				postHTML += p.toHTML().replace("<!-- ReSqueak -->", "ReSqueak");
+			}
+		}
 		String tempF = DBPortal.readFile("src" + DBPortal.SEP + "backend" + DBPortal.SEP + "HTMLTemplates" + DBPortal.SEP + "template.html");
-		String page = tempF.replaceAll("%user%", requestingUser);
-		page = page.replaceAll("%username%",username);
+		String page = "";
+		page = tempF.replaceAll("%user%", requestingUser);
 		page = page.replaceFirst("%userInformation%", userHTML);
+		if (username.equals(requestingUser)) page = 
+			page.replaceAll("%buttonArea%", readFile("src" + SEP + "backend" + SEP + "HTMLTemplates" + SEP+ "postBox" ));
+		else if (!isFollowing(requestingUser,username)) page = 
+			page.replaceAll("%buttonArea%", readFile("src"+SEP+"backend"+SEP+ "HTMLTemplates" + SEP+ "followButton"));
+		else page = 
+			page.replaceAll("%buttonArea%", readFile("src"+SEP+"backend"+SEP+ "HTMLTemplates" + SEP+ "unfollowButton"));
+		page = page.replaceAll("%username%",username);
 		page = page.replaceFirst("%posts%", postHTML);
 		return page;
 	}
@@ -386,6 +424,34 @@ public class DBPortal {
 		return posts;
 	}
 
+	/**
+	 * 
+	 * @param sessionID
+	 * @param follower
+	 * @return
+	 * @throws SQLException
+	 * @throws FileNotFoundException
+	 */
+	public String followingPage(String username, boolean follower) throws SQLException, FileNotFoundException
+	{
+		String query = (follower) ? 
+				"SELECT username,email,description,picture,name FROM USER WHERE USERNAME IN (SELECT FOLLOWEE FROM FOLLOWING WHERE FOLLOWER = ?)" 
+				: 
+				"SELECT username,email,description,picture,name FROM USER WHERE USERNAME IN (SELECT FOLLOWER FROM FOLLOWING WHERE FOLLOWEE = ?)";
+		PreparedStatement prepStmt = conn.prepareStatement(query);
+		prepStmt.setString(1,username);
+		ResultSet rs = prepStmt.executeQuery();
+		String userHTML = "";
+		while (rs.next())
+			userHTML += new User(rs).toSearchHTML();
+		
+		String html = readFile("src" + SEP + "backend" + SEP + "HTMLTemplates" + SEP +((follower)? "following.html":"followers.html"));
+		
+		html = html.replaceAll("%user%", username);
+		html = html.replaceAll("%userHTML%", userHTML);
+		return html;
+	}
+	
 	private User getUser(String username) throws SQLException
 	{
 		User u = null;
@@ -413,23 +479,25 @@ public class DBPortal {
 	 */
 	public static String readFile(String pathname) throws FileNotFoundException
 	{
+		String str = "";
 		FileInputStream stream = new FileInputStream(new File(pathname));
 		try {
 			FileChannel fc = stream.getChannel();
 			MappedByteBuffer bb = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
 			/* Instead of using default, pass in a decoder. */
-			return Charset.defaultCharset().decode(bb).toString();
+			str = Charset.defaultCharset().decode(bb).toString();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		finally {
 			try {
 				stream.close();
+				return str;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-		return null;
+		return str;
 	}
 	
 	public static String randomString(int size)

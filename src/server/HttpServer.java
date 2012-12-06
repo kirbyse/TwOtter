@@ -3,27 +3,35 @@ package server;
 import java.io.*;
 import java.net.*;
 
+/**
+ * This class creates an HTTP web server which will host an HttpHandler to parse and handle URLs
+ * passed from the client to the server.
+ * @author Eric
+ * Requires HttpHandler
+ */
 public class HttpServer extends Thread{
 	int port;
-	int cnt;
 	ServerSocket svr = null;
 
+	/**
+	 * Creates an HttpServer instance required for threading
+	 */
 	public HttpServer() {
 	}
 
+	/**
+	 * Static entry point for program
+	 * @param a
+	 */
 	public static void main(String a[]) {
-		//try {
-		//	port = Integer.parseInt(a[0]);
-		//} catch (Exception err) {
-		//	System.err.println("Usage: <port>");
-		//	System.exit(-1);
-		//}
-
 		new HttpServer().run();
 	}
 
+	/**
+	 * Searches for a port on the current system that is not in use and creates a SeverSocket bound
+	 * to this port for the HttpServer and HttpHandler to use.
+	 */
 	public void run() {
-
 		for(int i = 3000; i < 65000; i++) {
 			try {
 				svr = new ServerSocket(i);
@@ -31,16 +39,12 @@ public class HttpServer extends Thread{
 				System.out.println("Running on port: " + port);
 				break;
 			} catch (IOException err) {
-				System.err.println("Socket invalid or in use");
-				System.exit(-1);
 			}
 		}
-
 		while (true) {
 			try {
 				Socket client = svr.accept();
-				cnt++;
-				new HttpHandler(client,cnt).start();
+				new HttpHandler(client).start();
 			} catch (IOException err) {}
 		}
 	}

@@ -4,11 +4,9 @@
 	<h2>%name%</h2>
 	<a href="%username%"><h3>%username%</h3></a>
 	%description%
+	<a href="/followers.html?username=%username%"><button class="btn">Followers</button></a>
+	<a href="/following.html?username=%username%"><button class="btn">Following</button></a>
 	<br/>
-	<a href="edit_profile.html">Edit Profile</a>
-	<hr/>
-	<form method="get">
-		<input class="input-block-level" name="post" type="text" maxlength="140" placeholder="Compose new Squeek...">
-		<button class="btn">Squeek</button>
-	</form>
+	<br />
+	%buttonArea%
 </div>

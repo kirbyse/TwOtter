@@ -65,4 +65,8 @@ public class Post {
 		return html;
 	}
 	
+	public String getPostBy() {
+		return postBy;
+	}
+	
 }

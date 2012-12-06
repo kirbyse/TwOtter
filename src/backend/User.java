@@ -56,4 +56,14 @@ public class User {
 		html = html.replaceAll(DESC_RE, description);
 		return html;
 	}
+	
+	public String toSearchHTML() throws FileNotFoundException
+	{
+		String html = DBPortal.readFile("src" + DBPortal.SEP + "backend" + DBPortal.SEP + "HTMLTemplates" + DBPortal.SEP + "result.html");
+		html = html.replaceAll("%username%", username);
+		html = html.replaceAll("%name%", name);
+		html = html.replaceAll("%picture%", picture);
+		html = html.replaceAll("%description%", description);
+		return html;
+	}
 }

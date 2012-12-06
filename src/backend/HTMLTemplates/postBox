@@ -1,0 +1,6 @@
+<a href="EditProfile.html">Edit Profile</a>
+<hr/>
+<form id="newPost" method="get" style="">
+	<input class="input-block-level" name="post" type="text" maxlength="140" placeholder="Compose new Squeak...">
+	<button class="btn">Squeak</button>
+</form>
